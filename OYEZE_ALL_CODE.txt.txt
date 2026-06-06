@@ -1,0 +1,116 @@
+=== FILE: package.json ===
+{
+  "name": "oyeze",
+  "scripts": { "dev": "next dev", "build": "next build", "start": "next start" },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@supabase/supabase-js": "2.45.4",
+    "stripe": "15.0.0",
+    "@stripe/stripe-js": "4.4.0"
+  }
+}
+
+=== FILE: app/page.js ===
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import Link from 'next/link'
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+export default function Home() {
+  const [products, setProducts] = useState([])
+  useEffect(() => { supabase.from('products').select('*').then(({ data }) => setProducts(data || [])) }, [])
+  function addToCart(product) { const current = JSON.parse(localStorage.getItem('oyeze_cart') || '[]'); current.push(product); localStorage.setItem('oyeze_cart', JSON.stringify(current)); alert(product.name + ' added to cart') }
+  return (<main style={{padding: '20px', background: '#121212', color: '#fff', minHeight: '100vh'}}><header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}><h1 style={{color: '#E6007E', fontSize: '28px'}}>OYEZE</h1><nav style={{display: 'flex', gap: '20px'}}><Link href="/cart" style={{color: '#fff', textDecoration: 'none'}}>Cart</Link><Link href="/login" style={{color: '#fff', textDecoration: 'none'}}>Login</Link><Link href="/admin" style={{color: '#E6007E', textDecoration: 'none'}}>Admin</Link></nav></header><div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px'}}>{products.map(p => (<div key={p.id} style={{background: '#1e1e1e', borderRadius: '12px', padding: '16px'}}>{p.image_url && <img src={p.image_url} alt={p.name} style={{width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px'}}/>}<h3 style={{marginTop: '12px'}}>{p.name}</h3><p style={{color: '#888', fontSize: '14px'}}>{p.category}</p><p style={{color: '#E6007E', fontWeight: '700', fontSize: '20px', marginTop: '8px'}}>${p.price}</p><button onClick={() => addToCart(p)} style={{marginTop: '12px', width: '100%', padding: '10px', background: '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', cursor: 'pointer'}}>Add to Cart</button></div>))}</div></main>)
+}
+
+=== FILE: app/admin/page.js ===
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+export default function Admin() {
+  const [products, setProducts] = useState([]); const [profiles, setProfiles] = useState([]); const [name, setName] = useState(''); const [category, setCategory] = useState('clothes'); const [price, setPrice] = useState(''); const [image, setImage] = useState('')
+  useEffect(() => { loadData() }, [])
+  async function loadData() { const { data: prods } = await supabase.from('products').select('*'); const { data: profs } = await supabase.from('profiles').select('*'); setProducts(prods || []); setProfiles(profs || []) }
+  async function addProduct(e) { e.preventDefault(); await supabase.from('products').insert({ name, category, price: parseFloat(price), image_url: image }); setName(''); setPrice(''); setImage(''); loadData() }
+  async function toggleVerified(id, current) { await supabase.from('profiles').update({ is_verified:!current }).eq('id', id); loadData() }
+  return (<main style={{padding: '20px', background: '#121212', color: '#fff', minHeight: '100vh'}}><h1 style={{color: '#E6007E'}}>OYEZE Admin</h1><h2 style={{marginTop: '30px'}}>Add Product</h2><form onSubmit={addProduct} style={{display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px'}}><input placeholder="Name" value={name} onChange={e => setName(e.target.value)} style={{padding: '10px', background: '#1e1e1e', color: '#fff', border: 'none', borderRadius: '6px'}}/><select value={category} onChange={e => setCategory(e.target.value)} style={{padding: '10px', background: '#1e1e1e', color: '#fff', border: 'none', borderRadius: '6px'}}><option value="clothes">Clothes</option><option value="phone">Phone</option><option value="watch">Watch</option></select><input placeholder="Price" type="number" value={price} onChange={e => setPrice(e.target.value)} style={{padding: '10px', background: '#1e1e1e', color: '#fff', border: 'none', borderRadius: '6px'}}/><input placeholder="Image URL" value={image} onChange={e => setImage(e.target.value)} style={{padding: '10px', background: '#1e1e1e', color: '#fff', border: 'none', borderRadius: '6px'}}/><button type="submit" style={{padding: '12px', background: '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700'}}>Add Product</button></form><h2 style={{marginTop: '40px'}}>Customers</h2>{profiles.map(p => (<div key={p.id} style={{background: '#1e1e1e', padding: '12px', borderRadius: '8px', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}><span>{p.username || p.id} {p.is_verified && <span style={{background: '#1DA1F2', padding: '2px 6px', borderRadius: '4px', fontSize: '12px'}}>✓ Verified</span>}</span><button onClick={() => toggleVerified(p.id, p.is_verified)} style={{padding: '6px 12px', background: p.is_verified? '#555' : '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer'}}>{p.is_verified? 'Unverify' : 'Verify'}</button></div>))}</main>)
+}
+
+=== FILE: app/login/page.js ===
+'use client'
+import { useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+export default function Login() {
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const router = useRouter()
+  async function handleLogin(e) { e.preventDefault(); const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) alert(error.message); else router.push('/') }
+  return (<main style={{padding: '20px', background: '#121212', color: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><form onSubmit={handleLogin} style={{background: '#1e1e1e', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '400px'}}><h1 style={{color: '#E6007E', marginBottom: '20px'}}>Login to OYEZE</h1><input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{width: '100%', padding: '12px', marginBottom: '12px', background: '#2a2a2a', color: '#fff', border: 'none', borderRadius: '6px'}}/><input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={{width: '100%', padding: '12px', marginBottom: '20px', background: '#2a2a2a', color: '#fff', border: 'none', borderRadius: '6px'}}/><button type="submit" style={{width: '100%', padding: '12px', background: '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700'}}>Login</button><p style={{marginTop: '20px', textAlign: 'center', color: '#888'}}>No account? <Link href="/signup" style={{color: '#E6007E'}}>Sign up</Link></p></form></main>)
+}
+
+=== FILE: app/signup/page.js ===
+'use client'
+import { useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+export default function Signup() {
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [username, setUsername] = useState(''); const router = useRouter()
+  async function handleSignup(e) { e.preventDefault(); const { data, error } = await supabase.auth.signUp({ email, password }); if (error) return alert(error.message); if (data.user) { await supabase.from('profiles').insert({ id: data.user.id, username }) }; router.push('/') }
+  return (<main style={{padding: '20px', background: '#121212', color: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><form onSubmit={handleSignup} style={{background: '#1e1e1e', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '400px'}}><h1 style={{color: '#E6007E', marginBottom: '20px'}}>Join OYEZE</h1><input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required style={{width: '100%', padding: '12px', marginBottom: '12px', background: '#2a2a2a', color: '#fff', border: 'none', borderRadius: '6px'}}/><input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{width: '100%', padding: '12px', marginBottom: '12px', background: '#2a2a2a', color: '#fff', border: 'none', borderRadius: '6px'}}/><input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={{width: '100%', padding: '12px', marginBottom: '20px', background: '#2a2a2a', color: '#fff', border: 'none', borderRadius: '6px'}}/><button type="submit" style={{width: '100%', padding: '12px', background: '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700'}}>Sign Up</button><p style={{marginTop: '20px', textAlign: 'center', color: '#888'}}>Already have account? <Link href="/login" style={{color: '#E6007E'}}>Login</Link></p></form></main>)
+}
+
+=== FILE: app/cart/page.js ===
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+import { loadStripe } from '@stripe/stripe-js'
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+export default function Cart() {
+  const [cart, setCart] = useState([]); const router = useRouter()
+  useEffect(() => { const saved = JSON.parse(localStorage.getItem('oyeze_cart') || '[]'); setCart(saved) }, [])
+  const total = cart.reduce((sum, item) => sum + item.price, 0)
+  async function checkout() { const { data: { user } = await supabase.auth.getUser(); if (!user) return router.push('/login'); const stripe = await stripePromise; const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart }) }); const session = await res.json(); stripe.redirectToCheckout({ sessionId: session.id }) }
+  function removeItem(index) { const newCart = cart.filter((_, i) => i!== index); setCart(newCart); localStorage.setItem('oyeze_cart', JSON.stringify(newCart)) }
+  return (<main style={{padding: '20px', background: '#121212', color: '#fff', minHeight: '100vh'}}><h1 style={{color: '#E6007E'}}>Your Cart</h1>{cart.length === 0? (<p style={{marginTop: '20px', color: '#888'}}>Cart is empty</p>) : (<><>{cart.map((item, i) => (<div key={i} style={{background: '#1e1e1e', padding: '16px', borderRadius: '8px', marginTop: '12px', display: 'flex', justifyContent: 'space-between'}}><div><h3>{item.name}</h3><p style={{color: '#888'}}>{item.category}</p></div><div style={{textAlign: 'right'}}><p style={{color: '#E6007E', fontWeight: '700'}}>${item.price}</p><button onClick={() => removeItem(i)} style={{marginTop: '8px', padding: '4px 8px', background: '#444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}>Remove</button></div></div>))}</><div style={{marginTop: '30px', padding: '20px', background: '#1e1e1e', borderRadius: '8px'}}><h2>Total: <span style={{color: '#E6007E'}}>${total.toFixed(2)}</span></h2><button onClick={checkout} style={{marginTop: '16px', width: '100%', padding: '14px', background: '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '16px'}}>Checkout</button></div></>)}</main>)
+}
+
+=== FILE: app/profile/[id]/page.js ===
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useParams } from 'next/navigation'
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+export default function Profile() {
+  const { id } = useParams(); const [profile, setProfile] = useState(null); const [followers, setFollowers] = useState(0); const [isFollowing, setIsFollowing] = useState(false); const [currentUser, setCurrentUser] = useState(null)
+  useEffect(() => { loadProfile(); getCurrentUser() }, [id])
+  async function getCurrentUser() { const { data: { user } = await supabase.auth.getUser(); setCurrentUser(user) }
+  async function loadProfile() { const { data: prof } = await supabase.from('profiles').select('*').eq('id', id).single(); const { count } = await supabase.from('followers').select('*', { count: 'exact' }).eq('following_id', id); setProfile(prof); setFollowers(count || 0) }
+  async function toggleFollow() { if (!currentUser) return alert('Login first'); if (isFollowing) { await supabase.from('followers').delete().eq('follower_id', currentUser.id).eq('following_id', id); setIsFollowing(false); setFollowers(f => f - 1) } else { await supabase.from('followers').insert({ follower_id: currentUser.id, following_id: id }); setIsFollowing(true); setFollowers(f => f + 1) } }
+  if (!profile) return <div style={{padding: '20px', background: '#121212', color: '#fff'}}>Loading...</div>
+  return (<main style={{padding: '20px', background: '#121212', color: '#fff', minHeight: '100vh'}}><h1 style={{display: 'flex', alignItems: 'center', gap: '8px'}}>{profile.username}{profile.is_verified && <span style={{background: '#1DA1F2', padding: '2px 6px', borderRadius: '4px', fontSize: '14px'}}>✓</span>}</h1><p style={{color: '#888', marginTop: '8px'}}>{followers} followers</p>{currentUser && currentUser.id!== id && (<button onClick={toggleFollow} style={{marginTop: '20px', padding: '10px 20px', background: isFollowing? '#555' : '#E6007E', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700'}}>{isFollowing? 'Unfollow' : 'Follow'}</button>)}</main>)
+}
+
+=== FILE: app/success/page.js ===
+'use client'
+export default function Success() { return (<main style={{padding: '40px', background: '#121212', color: '#fff', minHeight: '100vh', textAlign: 'center'}}><h1 style={{color: '#E6007E', fontSize: '32px'}}>Payment Successful!</h1><p style={{marginTop: '20px', color: '#888'}}>Thanks for your OYEZE order. We will ship it soon.</p><a href="/" style={{display: 'inline-block', marginTop: '30px', padding: '12px 24px', background: '#E6007E', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontWeight: '700'}}>Back to Shop</a></main>) }
+
+=== FILE: app/api/checkout/route.js ===
+import Stripe from 'stripe'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+export async function POST(req) { const { items } = await req.json(); const session = await stripe.checkout.sessions.create({ payment_method_types: ['card'], line_items: items.map(item => ({ price_data: { currency: 'usd', product_data: { name: item.name }, unit_amount: item.price * 100 }, quantity: 1 })), mode: 'payment', success_url: 'https://oyeze.vercel.app/success', cancel_url: 'https://oyeze.vercel.app/cart' }); return Response.json({ id: session.id }) }
+
+=== FILE:.env.local ===
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+STRIPE_SECRET_KEY=sk_test_your_key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
