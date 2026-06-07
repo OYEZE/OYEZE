@@ -16,5 +16,8 @@
    "@uploadthing/react": "^6.7.2"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.0.0"
+  "@netlify/plugin-nextjs": "^5.0.0",
+  "typescript": "^5.4.5",
+  "@types/react": "^18.3.1",
+  "@types/node": "^20.12.7"
   }}
