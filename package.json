@@ -12,6 +12,8 @@
     "@supabase/supabase-js": "2.45.4",
     "stripe": "15.0.0",
     "@stripe/stripe-js": "4.4.0"
+      "uploadthing": "^6.13.2",
+   "@uploadthing/react": "^6.7.2"
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.0.0"
