@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic'
 export default function UploadProduct() {
   async function uploadProduct(formData: FormData) {
     'use server'
