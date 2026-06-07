@@ -1,6 +1,6 @@
 import { createRouteHandler } from "uploadthing/next";
 
-const createHandlers = async () => {
+const getHandlers = async () => {
   if (!process.env.UPLOADTHING_TOKEN) {
     return {
       GET: () => new Response("Upload disabled", { status: 200 }),
@@ -11,5 +11,7 @@ const createHandlers = async () => {
   return createRouteHandler({ router: ourFileRouter });
 };
 
-const handlers = await createHandlers();
-export const { GET, POST } = handlers;
+export async function GET(req: Request) {
+  const handlers = await getHandlers();
+  return handlers.GET(req);
+}
