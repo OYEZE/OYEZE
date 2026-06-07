@@ -1,10 +1,13 @@
-import { createUploadthing } from "uploadthing/next";
 import { type FileRouter } from "uploadthing/next";
 
-const f = process.env.UPLOADTHING_TOKEN ? createUploadthing() : null;
+const hasToken = !!process.env.UPLOADTHING_TOKEN;
 
-export const ourFileRouter = f ? {
-  imageUploader: f({ image: { maxFileSize: "4MB" } })
-    .middleware(() => ({}))
-    .onUploadComplete(() => {}),
-} satisfies FileRouter : {} as FileRouter;
+export const ourFileRouter = hasToken ? (() => {
+  const { createUploadthing } = require("uploadthing/next");
+  const f = createUploadthing();
+  return {
+    imageUploader: f({ image: { maxFileSize: "4MB" } })
+      .middleware(() => ({}))
+      .onUploadComplete(() => {}),
+  } satisfies FileRouter;
+})() : {} as FileRouter;
