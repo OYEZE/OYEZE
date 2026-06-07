@@ -1,11 +1,10 @@
-import { createUploadthing, type FileRouter } from "uploadthing/next";
-const f = createUploadthing();
+import { createUploadthing } from "uploadthing/next";
+import { type FileRouter } from "uploadthing/next";
 
-export const ourFileRouter = {
+const f = process.env.UPLOADTHING_TOKEN ? createUploadthing() : null;
+
+export const ourFileRouter = f ? {
   imageUploader: f({ image: { maxFileSize: "4MB" } })
-    .onUploadComplete(async ({ file }) => {
-      console.log("File uploaded:", file.url);
-    }),
-} satisfies FileRouter;
-
-export type OurFileRouter = typeof ourFileRouter;
+    .middleware(() => {})
+    .onUploadComplete(() => {}),
+} satisfies FileRouter : {} as FileRouter;
