@@ -1,6 +1,11 @@
 import { createRouteHandler } from "uploadthing/next";
 import { ourFileRouter } from "./core";
 
-export const { GET, POST } = createRouteHandler({
-  router: ourFileRouter,
-});
+const handlers = process.env.UPLOADTHING_TOKEN
+  ? createRouteHandler({ router: ourFileRouter })
+  : {
+      GET: () => new Response("Upload disabled", { status: 200 }),
+      POST: () => new Response("Upload disabled", { status: 200 }),
+    };
+
+export const { GET, POST } = handlers;
